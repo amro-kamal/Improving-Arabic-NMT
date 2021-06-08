@@ -149,7 +149,7 @@ def load_data(data_cfg: dict, datasets: list = None)\
     if "dev" in datasets and dev_path is not None:
         logger.info("Loading dev data...")
         dev_data = TranslationDataset(path=dev_path,
-                                      exts=("." + src_lang, "." + trg_lang),
+                                      exts=("." + src_lang1, "." + trg_lang1),
                                       fields=(src_field, trg_field))
 ##############################################################################
 #test data
@@ -158,13 +158,13 @@ def load_data(data_cfg: dict, datasets: list = None)\
     if "test" in datasets and test_path is not None:
         logger.info("Loading test data...")
         # check if target exists
-        if os.path.isfile(test_path + "." + trg_lang):
+        if os.path.isfile(test_path + "." + trg_lang1):
             test_data = TranslationDataset(
-                path=test_path, exts=("." + src_lang, "." + trg_lang),
+                path=test_path, exts=("." + src_lang1, "." + trg_lang1),
                 fields=(src_field, trg_field))
         else:
             # no target is given -> create dataset from src only
-            test_data = MonoDataset(path=test_path, ext="." + src_lang,
+            test_data = MonoDataset(path=test_path, ext="." + src_lang1,
                                     field=src_field)
 ##############################################################################
 ##############################################################################
