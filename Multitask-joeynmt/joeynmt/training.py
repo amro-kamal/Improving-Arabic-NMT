@@ -366,7 +366,7 @@ class TrainManager:
                                          batch_size=self.batch_size,
                                          batch_type=self.batch_type,
                                          train=True,
-                                         shuffle=self.shuffle)
+                                         shuffle=not self.shuffle)
 
         self.train_iter=[train_iter1 , train_iter2]
 
@@ -417,8 +417,10 @@ class TrainManager:
 
 
 
-            num_batches_per_epoch = len(train_iter1) // self.batch_size
+            num_batches_per_epoch = len(train_iter1.dataset) // self.batch_size
+            logger.info('num_batches_per_epoch {}'.format(num_batches_per_epoch))
             num_ref_updates=0 #total num of references task updates, we need self.ref_updates
+            num_other_updates=0
             batch_number_in_epoch=-1 #total number of loops
             self.model.train()
             self.model.zero_grad()
@@ -442,15 +444,16 @@ class TrainManager:
                 if num_ref_updates==self.ref_updates:
                     break
                 #sample a task
-                probs = self.mixing_ratio/torch.sum(self.mixing_ratio)
+                probs = torch.tensor(self.mixing_ratio)/torch.sum(torch.tensor(self.mixing_ratio))
                 prob_dist = torch.distributions.Categorical(probs) # probs should be of size batch x classes
                 task_id = prob_dist.sample()
 
-
+                
                 #Do at the end of each epoch
                 if num_batches_per_epoch == num_ref_updates:
                     
                     logger.info('Epoch %3d: total training loss %.2f', epoch_no+1 , epoch_loss)
+                    logger.info('ref task updates %d Aux task updates  %d', num_ref_updates , num_other_updates)
 
                     epoch_no+=1
                     logger.info("EPOCH %d", epoch_no + 1) 
@@ -469,21 +472,23 @@ class TrainManager:
                     batch_loss = 0
                     batch_number_in_epoch=0
                     num_ref_updates=0
-
+                    num_other_updates=0
 
                 #reference task
                 if task_id==0: 
                     num_ref_updates+=1
+                else:
+                    num_other_updates+=1
 
                 #get batch
                 batch = next(iter(self.train_iter[task_id]))
                 batch = self.batch_class(batch, self.model.pad_index,
                                         use_cuda=self.use_cuda)
 
-                # get batch loss
+                #get batch loss
                 batch_loss += self._train_step(batch)
 
-                # update! if batch_multiplier==1, we always run this block 
+                #update! if batch_multiplier==1, we always run this block 
                 if (batch_number_in_epoch + 1) % self.batch_multiplier == 0:
                     # clip gradients (in-place)
                     if self.clip_grad_fun is not None:
