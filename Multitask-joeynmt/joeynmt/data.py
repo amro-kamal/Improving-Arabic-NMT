@@ -79,8 +79,12 @@ def load_data(data_cfg: dict, datasets: list = None)\
                            include_lengths=True)
 
     train_data1 = None
+
+    logger.info("############*5 Loading task1 training data from {} , srclang {}  , trg lang {}".format(train_path1 , src_lang1 , trg_lang1))
+
     if "train" in datasets and train_path1 is not None:
-        logger.info("Loading task1 training data...")
+
+        logger.info("############*5 Loading task1 training data...")
         train_data1 = TranslationDataset(path=train_path1,
                                         exts=("." + src_lang1, "." + trg_lang1),
                                         fields=(src_field, trg_field),
@@ -89,6 +93,8 @@ def load_data(data_cfg: dict, datasets: list = None)\
                                         <= max_sent_length
                                         and len(vars(x)['trg'])
                                         <= max_sent_length)
+
+        print('############*5 len train_data1  {}'.format(len(train_data1)))
 
         #parameter to select part od the training data
         random_train_subset = data_cfg.get("random_train_subset", -1)
@@ -101,8 +107,11 @@ def load_data(data_cfg: dict, datasets: list = None)\
             train_data1 = keep
 
 #############################
+
     train_data2 = None
     if "train" in datasets and train_path2 is not None:
+        logger.info("############*5 Loading task2 training data from {} , srclang {}  , trg lang {}".format(train_path2 , src_lang2 , trg_lang2))
+
         logger.info("Loading task2 training data...")
         train_data2 = TranslationDataset(path=train_path2,
                                         exts=("." + src_lang2, "." + trg_lang2),
@@ -112,7 +121,6 @@ def load_data(data_cfg: dict, datasets: list = None)\
                                         <= max_sent_length
                                         and len(vars(x)['trg'])
                                         <= max_sent_length)
-
         if random_train_subset > -1:
             # select this many training examples randomly and discard the rest
             keep_ratio = random_train_subset / len(train_data2)
@@ -147,6 +155,8 @@ def load_data(data_cfg: dict, datasets: list = None)\
 ##############################################################################
     dev_data = None
     if "dev" in datasets and dev_path is not None:
+        logger.info("############*5 Loading val  data from {} , srclang {}  , trg lang {}".format(dev_path , src_lang1 , trg_lang1))
+
         logger.info("Loading dev data...")
         dev_data = TranslationDataset(path=dev_path,
                                       exts=("." + src_lang1, "." + trg_lang1),

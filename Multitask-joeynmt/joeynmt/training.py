@@ -417,7 +417,7 @@ class TrainManager:
 
 
 
-            num_batches_per_epoch = len(train_iter[0]) // self.batch_size
+            num_batches_per_epoch = len(train_iter1) // self.batch_size
             num_ref_updates=0 #total num of references task updates, we need self.ref_updates
             batch_number_in_epoch=-1 #total number of loops
             self.model.train()
@@ -476,7 +476,7 @@ class TrainManager:
                     num_ref_updates+=1
 
                 #get batch
-                batch = next(iter(self.train_iter[task_id])):
+                batch = next(iter(self.train_iter[task_id]))
                 batch = self.batch_class(batch, self.model.pad_index,
                                         use_cuda=self.use_cuda)
 
@@ -917,9 +917,10 @@ def train(cfg_file: str, skip_test: bool = False) -> None:
     set_seed(seed=cfg["training"].get("random_seed", 42))
 
     # load the data
+    logger.info("loading the data......")
     train_data1 , train_data2 ,  dev_data, test_data, src_vocab, trg_vocab = load_data(
         data_cfg=cfg["data"])
-
+    logger.info("task1 train data len {}".format(len(train_data1)))
     # build an encoder-decoder model
     model = build_model(cfg["model"], src_vocab=src_vocab, trg_vocab=trg_vocab)
 
