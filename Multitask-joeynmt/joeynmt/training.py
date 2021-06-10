@@ -249,7 +249,7 @@ class TrainManager:
             'amp_state':
             amp.state_dict() if self.fp16 else None,
             "train_iter_state":
-            self.train_iter.state_dict()
+            self.train_iter[0].state_dict()
         }
         torch.save(state, model_path)
         symlink_target = "{}.ckpt".format(self.stats.steps)
@@ -366,7 +366,7 @@ class TrainManager:
                                          batch_size=self.batch_size,
                                          batch_type=self.batch_type,
                                          train=True,
-                                         shuffle=not self.shuffle)
+                                         shuffle= self.shuffle)
 
         self.train_iter=[train_iter1 , train_iter2]
 
@@ -482,6 +482,11 @@ class TrainManager:
 
                 #get batch
                 batch = next(iter(self.train_iter[task_id]))
+                # batch2 = next(iter(self.train_iter[1]))
+                # logger.info('batch 1 {}'.format(batch1))
+                # logger.info('batch 2 {}'.format(batch2))
+                # break
+
                 batch = self.batch_class(batch, self.model.pad_index,
                                         use_cuda=self.use_cuda)
 
