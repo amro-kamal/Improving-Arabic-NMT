@@ -321,7 +321,7 @@ def test(cfg_file,
         if data_set is None:
             continue
 
-        dataset_file = cfg["data"][data_set_name] + "." + cfg["data"]["trg"]
+        dataset_file = cfg["data"][data_set_name] + "." + cfg["data"]["trg1"]
         logger.info("Decoding on %s set (%s)...", data_set_name, dataset_file)
 
         #pylint: disable=unused-variable
