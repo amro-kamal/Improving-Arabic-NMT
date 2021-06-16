@@ -1,12 +1,10 @@
 # Arabic-MTL-NMT
 A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 
-| Experiment  | Val bleu | Test bleu|
-| ------------- | ------------- |
-| Content Cell  | Content Cell  |
-| Content Cell  | Content Cell  |
+|      Experiment     |  Discription  |    Val bleu   |   Test bleu   |
+|    -------------    | ------------- | ------------- | ------------- |
+| large en-dec trans  |      ###      |      ###      |     ###       |
+| large en-dec trans  |      ###      |      ###      |     ###       |
 
-| First Header  | Second Header |
-| ------------- | ------------- |
-| Content Cell  | Content Cell  |
-| Content Cell  | Content Cell  |
+
+
