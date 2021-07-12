@@ -3,10 +3,10 @@ A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 
 |      Experiment          |           Discription           |   val bleu    |    test bleu    |
 |    -------------         |     -----------------------     |  ------------ | ------------    |
-| stanrad translaton [1]   |      6 layers, 50 epochs. [notebook](https://colab.research.google.com/drive/1RkhMMMZ2cZYTwy9imHUGt3O76kXJReq6?usp=sharing)        |     30.18       |   30.56       |
-| stanrad translaton [2]   |      6 layers, 50 epochs.       |     30.22       |   30.76       |
-| large en-dec trans       |      ###              |     ###       |   ###       |
-| large en-dec trans       |      ###              |     ###       |   ###       |
+| stanrad translaton [1]   |      6 layers, 50 epochs. [notebook](https://bit.ly/3wxSeRd)        |     30.18       |   30.56       |
+| stanrad translaton [2]   |      6 layers, 50 epochs. [notebook](https://bit.ly/3wtO7Wo)        |     30.22       |   30.76       |
+| mixing with (1,0.3) mixing ratio [1] | 6 layers, 40 epochs + 10 epochs fintuning. [notebook] (https://bit.ly/3hzsUGh)   |     30.22/?     |   30.44/?     |
+| mixing with (1,0.3) mixing ratio [2] | 6 layers, 40 epochs + 10 epochs fintuning. [notebook] (https://bit.ly/3r44O9D)   |     30.22/31.19 |   30.52/31.49       |
 | large en-dec trans       |      ###              |     ###       |   ###       |
 | large en-dec trans       |      ###              |     ###       |   ###       |
 | large en-dec trans       |      ###              |     ###       |   ###       |
