@@ -13,6 +13,7 @@ A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 | large en-dec trans       |      ###              |     ###       |   ###       |
 
 
+You can find the notebook for finetuning tasks [here](4/1AX4XfWgPOUr0aO5srLilpLs3Iy7maHTSQZXffUTEt-sRsd2BJuo_cPAAnCY) 
 
 
 
