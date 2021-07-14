@@ -8,7 +8,7 @@ A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 | mixing with (1,0.3) mixing ratio [1] | 6 layers, 40 epochs + 10 epochs fintuning. [notebook](https://bit.ly/3hzsUGh)   |   30.22/31.06  |   30.44/31.63  |
 | mixing with (1,0.3) mixing ratio [2] | 6 layers, 40 epochs + 10 epochs fintuning. [notebook](https://bit.ly/3r44O9D)   |   30.22/31.19  |   30.52/31.49  |
 | mixing with (1,0.5) mixing ratio [1] | 6 layers, 40 epochs + 10 epochs fintuning.          |     30.20/30.80     |   30.7/31.70     |
-| large en-dec trans       |      ###              |     ###       |   ###       |
+| mixing with (1,0.8) mixing ratio [1]       |     6 layers, 40 epochs + 10 epochs fintuning.           |     29.96/30.48       |   30.45/31.18       |
 | large en-dec trans       |      ###              |     ###       |   ###       |
 | large en-dec trans       |      ###              |     ###       |   ###       |
 
