@@ -54,16 +54,11 @@ class TrainManager:
                  batch_class: Batch = Batch) -> None:
         """
         Creates a new TrainManager for a model, specified as in configuration.
+
         :param model: torch module defining the model
         :param config: dictionary containing the training configurations
         :param batch_class: batch class to encapsulate the torch class
         """
-        self.multitask = config["training"].get('multitask' , False)
-        self.steps_per_epoch = config["training"].get("steps_per_epoch" , None)
-#############################################################################
-        #cheeck if multitask ==True and ref_updates==None
-#############################################################################
-        self.mixing_ratio = config["training"].get('mixing_ratio' , [1.0 , 1.0])
         train_config = config["training"]
         self.batch_class = batch_class
 
@@ -219,10 +214,12 @@ class TrainManager:
         """
         Save the model's current parameters and the training state to a
         checkpoint.
+
         The training state contains the total number of training steps,
         the total number of training tokens,
         the best checkpoint score and iteration so far,
         and optimizer and scheduler states.
+
         :param new_best: This boolean signals which symlink we will use for the
           new checkpoint. If it is true, we update best.ckpt, else latest.ckpt.
         """
@@ -249,7 +246,7 @@ class TrainManager:
             'amp_state':
             amp.state_dict() if self.fp16 else None,
             "train_iter_state":
-            self.train_iter[0].state_dict()
+            self.train_iter.state_dict()
         }
         torch.save(state, model_path)
         symlink_target = "{}.ckpt".format(self.stats.steps)
@@ -293,8 +290,10 @@ class TrainManager:
                              reset_iter_state: bool = False) -> None:
         """
         Initialize the trainer from a given checkpoint file.
+
         This checkpoint file contains not only model parameters, but also
         scheduler and optimizer states, see `self._save_checkpoint`.
+
         :param path: path to checkpoint
         :param reset_best_ckpt: reset tracking of the best checkpoint,
                                 use for domain adaptation with a new dev
@@ -350,32 +349,23 @@ class TrainManager:
     # pylint: disable=unnecessary-comprehension
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
-    def train_and_validate(self, train_data: List[Dataset], valid_data: Dataset) \
+    def train_and_validate(self, train_data: Dataset, valid_data: Dataset) \
             -> None:
         """
         Train the model and validate it from time to time on the validation set.
+
         :param train_data: training data
         :param valid_data: validation data
         """
-        train_iter1 = make_data_iter(train_data[0],
+        self.train_iter = make_data_iter(train_data,
                                          batch_size=self.batch_size,
                                          batch_type=self.batch_type,
                                          train=True,
                                          shuffle=self.shuffle)
-        train_iter2 = make_data_iter(train_data[1],
-                                         batch_size=self.batch_size,
-                                         batch_type=self.batch_type,
-                                         train=True,
-                                         shuffle= self.shuffle)
-
-        self.train_iter=[train_iter1 , train_iter2]
-
-        #TODO TODO TODO TODO
 
         if self.train_iter_state is not None:
-            logger.info("train_iter_state is {}".format(self.train_iter_state))
-            self.train_iter[0].load_state_dict(self.train_iter_state)
- 
+            self.train_iter.load_state_dict(self.train_iter_state)
+
         #################################################################
         # simplify accumulation logic:
         #################################################################
@@ -411,205 +401,109 @@ class TrainManager:
             self.n_gpu, self.fp16, self.batch_multiplier, self.batch_size //
             self.n_gpu if self.n_gpu > 1 else self.batch_size,
             self.batch_size * self.batch_multiplier)
+        steps_list=[]
+        for epoch_no in range(self.epochs):
+            logger.info("EPOCH %d", epoch_no + 1)
 
-        if self.multitask:
-            for epoch_no in range(self.epochs):
-                logger.info("EPOCH %d", epoch_no + 1)
+            if self.scheduler is not None and self.scheduler_step_at == "epoch":
+                self.scheduler.step(epoch=epoch_no)
 
-                if self.scheduler is not None and self.scheduler_step_at == "epoch":
-                    self.scheduler.step(epoch=epoch_no)
+            self.model.train()
 
-                self.model.train()
+            # Reset statistics for each epoch.
+            start = time.time()
+            total_valid_duration = 0
+            start_tokens = self.stats.total_tokens
+            self.model.zero_grad()
+            epoch_loss = 0
+            batch_loss = 0
+            epoch_steps=0
+            for i, batch in enumerate(iter(self.train_iter)):
+                epoch_steps+=1
+                # create a Batch object from torchtext batch
+                # batch = self.batch_class(batch, self.model.pad_index,
+                #                          use_cuda=self.use_cuda)
 
-                # Reset statistics for each epoch.
-                start = time.time()
-                total_valid_duration = 0
-                start_tokens = self.stats.total_tokens
-                self.model.zero_grad()
-                epoch_loss = 0
-                batch_loss = 0
+                # # get batch loss
+                # batch_loss += self._train_step(batch)
 
-                for i in range(self.steps_per_epoch):
-       
-                    #sample a task
-                    probs = torch.tensor(self.mixing_ratio)/torch.sum(torch.tensor(self.mixing_ratio))
-                    prob_dist = torch.distributions.Categorical(probs) # probs should be of size batch x classes
-                    task_id = prob_dist.sample()
-                
-                    #get batch
-                    batch = next(iter(self.train_iter[task_id]))
-                    # batch2 = next(iter(self.train_iter[1]))
-                    # logger.info('batch 1 {}'.format(batch1))
-                    # logger.info('batch 2 {}'.format(batch2))
-                    # break
+                # update!
+                if (i + 1) % self.batch_multiplier == 0:
+                    # # clip gradients (in-place)
+                    # if self.clip_grad_fun is not None:
+                    #     if self.fp16:
+                    #         self.clip_grad_fun(
+                    #             params=amp.master_params(self.optimizer))
+                    #     else:
+                    #         self.clip_grad_fun(params=self.model.parameters())
 
-                    batch = self.batch_class(batch, self.model.pad_index,
-                                            use_cuda=self.use_cuda)
+                    # # make gradient step
+                    # self.optimizer.step()
 
-                    #get batch loss
-                    batch_loss += self._train_step(batch)
+                    # # decay lr
+                    # if self.scheduler is not None \
+                    #         and self.scheduler_step_at == "step":
+                    #     self.scheduler.step()
 
-                    #update! if batch_multiplier==1, we always run this block 
-                    if (i + 1) % self.batch_multiplier == 0:
-                        # clip gradients (in-place)
-                        if self.clip_grad_fun is not None:
-                            if self.fp16:
-                                self.clip_grad_fun(
-                                    params=amp.master_params(self.optimizer))
-                            else:
-                                self.clip_grad_fun(params=self.model.parameters())
+                    # # reset gradients
+                    # self.model.zero_grad()
 
-                        # make gradient step
-                        self.optimizer.step()
+                    # increment step counter
+                    self.stats.steps += 1
 
-                        # decay lr
-                        if self.scheduler is not None \
-                                and self.scheduler_step_at == "step":
-                            self.scheduler.step()
+                    # # log learning progress
+                    # if self.stats.steps % self.logging_freq == 0:
+                    #     self.tb_writer.add_scalar("train/train_batch_loss",
+                    #                               batch_loss, self.stats.steps)
+                    #     elapsed = time.time() - start - total_valid_duration
+                    #     elapsed_tokens = self.stats.total_tokens - start_tokens
+                    #     logger.info(
+                    #         "Epoch %3d, Step: %8d, Batch Loss: %12.6f, "
+                    #         "Tokens per Sec: %8.0f, Lr: %.6f", epoch_no + 1,
+                    #         self.stats.steps, batch_loss,
+                    #         elapsed_tokens / elapsed,
+                    #         self.optimizer.param_groups[0]["lr"])
+                    #     start = time.time()
+                    #     total_valid_duration = 0
+                    #     start_tokens = self.stats.total_tokens
 
-                        # reset gradients
-                        self.model.zero_grad()
+                    # # Only add complete loss of full mini-batch to epoch_loss
+                    # epoch_loss += batch_loss  # accumulate epoch_loss
+                    # batch_loss = 0  # rest batch_loss
 
-                        # increment step counter
-                        self.stats.steps += 1
+                    # # validate on the entire dev set
+                    # if self.stats.steps % self.validation_freq == 0:
+                    #     valid_duration = self._validate(valid_data, epoch_no)
+                    #     total_valid_duration += valid_duration
 
-                        # log learning progress
-                        if self.stats.steps % self.logging_freq == 0:
-                            self.tb_writer.add_scalar("train/train_batch_loss",
-                                                    batch_loss, self.stats.steps)
-                            elapsed = time.time() - start - total_valid_duration
-                            elapsed_tokens = self.stats.total_tokens - start_tokens
-                            logger.info(
-                                "Epoch %3d, Step: %8d, Batch Loss: %12.6f, "
-                                "Tokens per Sec: %8.0f, Lr: %.6f", epoch_no + 1,
-                                self.stats.steps, batch_loss,
-                                elapsed_tokens / elapsed,
-                                self.optimizer.param_groups[0]["lr"])
-                            start = time.time()
-                            total_valid_duration = 0
-                            start_tokens = self.stats.total_tokens
-
-                        # Only add complete loss of full mini-batch to epoch_loss
-                        epoch_loss += batch_loss  # accumulate epoch_loss
-                        batch_loss = 0  # rest batch_loss
-
-                        # validate on the entire dev set
-                        if self.stats.steps % self.validation_freq == 0:
-                            valid_duration = self._validate(valid_data, epoch_no)
-                            total_valid_duration += valid_duration
-
-                    if self.stats.stop:
-                        break
                 if self.stats.stop:
-                    logger.info('Training ended since minimum lr %f was reached.',
-                                self.learning_rate_min)
                     break
+            logger.info(f'✅✅✅✅✅✅✅✅ epoch steps: {epoch_steps}')
+            steps_list.append(epoch_steps)
+            if self.stats.stop:
+                logger.info('Training ended since minimum lr %f was reached.',
+                            self.learning_rate_min)
+                break
 
-                logger.info('Epoch %3d: total training loss %.2f', epoch_no + 1,
-                            epoch_loss)
-            else:
-                logger.info('Training ended after %3d epochs.', epoch_no + 1)
-            logger.info('Best validation result (greedy) at step %8d: %6.2f %s.',
-                        self.stats.best_ckpt_iter, self.stats.best_ckpt_score,
-                        self.early_stopping_metric)
+            logger.info('Epoch %3d: total training loss %.2f', epoch_no + 1,
+                        epoch_loss)
+        else:
+            logger.info('Training ended after %3d epochs.', epoch_no + 1)
 
-            self.tb_writer.close()  # close Tensorboard writer
-                
+        avg=sum(steps_list)/len(steps_list)  
+        logger.info(f'stpes per epochs: {steps_list}') 
+        logger.info(f'avgerage steps per epoch for bath size of {self.batch_size} is: {avg}')
 
-        else:    
-            for epoch_no in range(self.epochs):
-                logger.info("EPOCH %d", epoch_no + 1)
+        logger.info('Best validation result (greedy) at step %8d: %6.2f %s.',
+                    self.stats.best_ckpt_iter, self.stats.best_ckpt_score,
+                    self.early_stopping_metric)
 
-                if self.scheduler is not None and self.scheduler_step_at == "epoch":
-                    self.scheduler.step(epoch=epoch_no)
-
-                self.model.train()
-
-                # Reset statistics for each epoch.
-                start = time.time()
-                total_valid_duration = 0
-                start_tokens = self.stats.total_tokens
-                self.model.zero_grad()
-                epoch_loss = 0
-                batch_loss = 0
-
-                for i, batch in enumerate(iter(self.train_iter)):
-                    # create a Batch object from torchtext batch
-                    batch = self.batch_class(batch, self.model.pad_index,
-                                            use_cuda=self.use_cuda)
-
-                    # get batch loss
-                    batch_loss += self._train_step(batch)
-
-                    # update!
-                    if (i + 1) % self.batch_multiplier == 0:
-                        # clip gradients (in-place)
-                        if self.clip_grad_fun is not None:
-                            if self.fp16:
-                                self.clip_grad_fun(
-                                    params=amp.master_params(self.optimizer))
-                            else:
-                                self.clip_grad_fun(params=self.model.parameters())
-
-                        # make gradient step
-                        self.optimizer.step()
-
-                        # decay lr
-                        if self.scheduler is not None \
-                                and self.scheduler_step_at == "step":
-                            self.scheduler.step()
-
-                        # reset gradients
-                        self.model.zero_grad()
-
-                        # increment step counter
-                        self.stats.steps += 1
-
-                        # log learning progress
-                        if self.stats.steps % self.logging_freq == 0:
-                            self.tb_writer.add_scalar("train/train_batch_loss",
-                                                    batch_loss, self.stats.steps)
-                            elapsed = time.time() - start - total_valid_duration
-                            elapsed_tokens = self.stats.total_tokens - start_tokens
-                            logger.info(
-                                "Epoch %3d, Step: %8d, Batch Loss: %12.6f, "
-                                "Tokens per Sec: %8.0f, Lr: %.6f", epoch_no + 1,
-                                self.stats.steps, batch_loss,
-                                elapsed_tokens / elapsed,
-                                self.optimizer.param_groups[0]["lr"])
-                            start = time.time()
-                            total_valid_duration = 0
-                            start_tokens = self.stats.total_tokens
-
-                        # Only add complete loss of full mini-batch to epoch_loss
-                        epoch_loss += batch_loss  # accumulate epoch_loss
-                        batch_loss = 0  # rest batch_loss
-
-                        # validate on the entire dev set
-                        if self.stats.steps % self.validation_freq == 0:
-                            valid_duration = self._validate(valid_data, epoch_no)
-                            total_valid_duration += valid_duration
-
-                    if self.stats.stop:
-                        break
-                if self.stats.stop:
-                    logger.info('Training ended since minimum lr %f was reached.',
-                                self.learning_rate_min)
-                    break
-
-                logger.info('Epoch %3d: total training loss %.2f', epoch_no + 1,
-                            epoch_loss)
-            else:
-                logger.info('Training ended after %3d epochs.', epoch_no + 1)
-            logger.info('Best validation result (greedy) at step %8d: %6.2f %s.',
-                        self.stats.best_ckpt_iter, self.stats.best_ckpt_score,
-                        self.early_stopping_metric)
-
-            self.tb_writer.close()  # close Tensorboard writer
+        self.tb_writer.close()  # close Tensorboard writer
 
     def _train_step(self, batch: Batch) -> Tensor:
         """
         Train the model on one batch: Compute the loss.
+
         :param batch: training batch
         :return: loss for batch (sum)
         """
@@ -752,6 +646,7 @@ class TrainManager:
                     new_best: bool = False) -> None:
         """
         Append a one-line report to validation logging file.
+
         :param valid_score: validation evaluation score [eval_metric]
         :param valid_ppl: validation perplexity
         :param valid_loss: validation loss (sum over whole validation set)
@@ -766,7 +661,7 @@ class TrainManager:
         if current_lr < self.learning_rate_min:
             self.stats.stop = True
 
-        with open(self.valid_report_file, 'a', encoding="utf-8") as opened_file:
+        with open(self.valid_report_file, 'a') as opened_file:
             opened_file.write(
                 "Steps: {}\tLoss: {:.5f}\tPPL: {:.5f}\t{}: {:.5f}\t"
                 "LR: {:.8f}\t{}\n".format(self.stats.steps, valid_loss,
@@ -796,6 +691,7 @@ class TrainManager:
                       references_raw: List[List[str]] = None) -> None:
         """
         Log a the first `self.log_valid_sents` sentences from given examples.
+
         :param sources: decoded sources (list of strings)
         :param hypotheses: decoded hypotheses (list of strings)
         :param references: decoded references (list of strings)
@@ -824,12 +720,12 @@ class TrainManager:
     def _store_outputs(self, hypotheses: List[str]) -> None:
         """
         Write current validation outputs to file in `self.model_dir.`
+
         :param hypotheses: list of strings
         """
         current_valid_output_file = "{}/{}.hyps".format(self.model_dir,
                                                         self.stats.steps)
-        with open(current_valid_output_file, 'w', encoding="utf-8") \
-                as opened_file:
+        with open(current_valid_output_file, 'w') as opened_file:
             for hyp in hypotheses:
                 opened_file.write("{}\n".format(hyp))
 
@@ -866,6 +762,7 @@ class TrainManager:
 def train(cfg_file: str, skip_test: bool = False) -> None:
     """
     Main training function. After training, also test on test data if given.
+
     :param cfg_file: path to configuration yaml file
     :param skip_test: whether a test should be run or not after training
     """
@@ -882,10 +779,9 @@ def train(cfg_file: str, skip_test: bool = False) -> None:
     set_seed(seed=cfg["training"].get("random_seed", 42))
 
     # load the data
-    logger.info("loading the data......")
-    train_data1 , train_data2 ,  dev_data, test_data, src_vocab, trg_vocab = load_data(
+    train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(
         data_cfg=cfg["data"])
-    logger.info("task1 train data len {}".format(len(train_data1)))
+
     # build an encoder-decoder model
     model = build_model(cfg["model"], src_vocab=src_vocab, trg_vocab=trg_vocab)
 
@@ -898,8 +794,7 @@ def train(cfg_file: str, skip_test: bool = False) -> None:
     # log all entries of config
     log_cfg(cfg)
 
-    log_data_info(train_data1=train_data1,
-                  train_data2=train_data2,
+    log_data_info(train_data=train_data,
                   valid_data=dev_data,
                   test_data=test_data,
                   src_vocab=src_vocab,
@@ -914,8 +809,7 @@ def train(cfg_file: str, skip_test: bool = False) -> None:
     trg_vocab.to_file(trg_vocab_file)
 
     # train the model
-
-    trainer.train_and_validate(train_data=[train_data1 , train_data2], valid_data=dev_data)
+    trainer.train_and_validate(train_data=train_data, valid_data=dev_data)
 
     if not skip_test:
         # predict with the best model on validation and test
@@ -944,323 +838,3 @@ if __name__ == "__main__":
                         help="Training configuration file (yaml).")
     args = parser.parse_args()
     train(cfg_file=args.config)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    #################################################
-    
-
-
-    # def train_and_validate(self, train_data: List[Dataset], valid_data: Dataset) \
-    #         -> None:
-    #     """
-    #     Train the model and validate it from time to time on the validation set.
-    #     :param train_data: training data
-    #     :param valid_data: validation data
-    #     """
-    #     train_iter1 = make_data_iter(train_data[0],
-    #                                      batch_size=self.batch_size,
-    #                                      batch_type=self.batch_type,
-    #                                      train=True,
-    #                                      shuffle=self.shuffle)
-    #     train_iter2 = make_data_iter(train_data[1],
-    #                                      batch_size=self.batch_size,
-    #                                      batch_type=self.batch_type,
-    #                                      train=True,
-    #                                      shuffle= self.shuffle)
-
-    #     self.train_iter=[train_iter1 , train_iter2]
-
-    #     #TODO TODO TODO TODO
-
-    #     if self.train_iter_state is not None:
-    #         logger.info("train_iter_state is {}".format(self.train_iter_state))
-    #         self.train_iter1.load_state_dict(self.train_iter_state)
-
-    #     #################################################################
-    #     # simplify accumulation logic:
-    #     #################################################################
-    #     # for epoch in range(epochs):
-    #     #     self.model.zero_grad()
-    #     #     epoch_loss = 0.0
-    #     #     batch_loss = 0.0
-    #     #     for i, batch in enumerate(iter(self.train_iter)):
-    #     #
-    #     #         # gradient accumulation:
-    #     #         # loss.backward() inside _train_step()
-    #     #         batch_loss += self._train_step(inputs)
-    #     #
-    #     #         if (i + 1) % self.batch_multiplier == 0:
-    #     #             self.optimizer.step()     # update!
-    #     #             self.model.zero_grad()    # reset gradients
-    #     #             self.steps += 1           # increment counter
-    #     #
-    #     #             epoch_loss += batch_loss  # accumulate batch loss
-    #     #             batch_loss = 0            # reset batch loss
-    #     #
-    #     #     # leftovers are just ignored.
-    #     #################################################################
-
-    #     logger.info(
-    #         "Train stats:\n"
-    #         "\tdevice: %s\n"
-    #         "\tn_gpu: %d\n"
-    #         "\t16-bits training: %r\n"
-    #         "\tgradient accumulation: %d\n"
-    #         "\tbatch size per device: %d\n"
-    #         "\ttotal batch size (w. parallel & accumulation): %d", self.device,
-    #         self.n_gpu, self.fp16, self.batch_multiplier, self.batch_size //
-    #         self.n_gpu if self.n_gpu > 1 else self.batch_size,
-    #         self.batch_size * self.batch_multiplier)
-
-    #     if self.multitask:
-
-
-
-
-    #         num_batches_per_epoch = len(train_iter1.dataset) // self.batch_size
-    #         logger.info('num_batches_per_epoch {}'.format(num_batches_per_epoch))
-    #         num_ref_updates=0 #total num of references task updates, we need self.ref_updates
-    #         num_other_updates=0
-    #         batch_number_in_epoch=-1 #total number of loops
-    #         self.model.train()
-    #         self.model.zero_grad()
-          
-    #         # Reset statistics for each epoch.
-    #         epoch_no=0 #the number of epchs so far
-    #         epoch_loss = 0
-    #         batch_loss = 0
-    #         start = time.time()
-    #         total_valid_duration = 0
-    #         start_tokens = self.stats.total_tokens
-
-    #         logger.info("EPOCH %d", epoch_no + 1) #we will increase the epoch_no latter, not here
-
-    #         if self.scheduler is not None and self.scheduler_step_at == "epoch":
-    #             self.scheduler.step(epoch=epoch_no)
-
-    #         while True:
-    #             batch_number_in_epoch+=1
-
-    #             if num_ref_updates==self.ref_updates:
-    #                 break
-    #             #sample a task
-    #             probs = torch.tensor(self.mixing_ratio)/torch.sum(torch.tensor(self.mixing_ratio))
-    #             prob_dist = torch.distributions.Categorical(probs) # probs should be of size batch x classes
-    #             task_id = prob_dist.sample()
-
-                
-    #             #Do at the end of each epoch
-    #             if num_batches_per_epoch == num_ref_updates:
-                    
-    #                 logger.info('Epoch %3d: total training loss %.2f', epoch_no+1 , epoch_loss)
-    #                 logger.info('ref task updates %d Aux task updates  %d', num_ref_updates , num_other_updates)
-
-    #                 epoch_no+=1
-    #                 logger.info("EPOCH %d", epoch_no + 1) 
-
-    #                 if self.scheduler is not None and self.scheduler_step_at == "epoch":
-    #                     self.scheduler.step(epoch=epoch_no)
-
-    #                 self.model.train()
-
-    #                 # Reset statistics for each epoch.
-    #                 start = time.time()
-    #                 total_valid_duration = 0
-    #                 start_tokens = self.stats.total_tokens
-    #                 self.model.zero_grad()
-    #                 epoch_loss = 0
-    #                 batch_loss = 0
-    #                 batch_number_in_epoch=0
-    #                 num_ref_updates=0
-    #                 num_other_updates=0
-
-    #             #reference task
-    #             if task_id==0: 
-    #                 num_ref_updates+=1
-    #             else:
-    #                 num_other_updates+=1
-
-    #             #get batch
-    #             batch = next(iter(self.train_iter[task_id]))
-    #             # batch2 = next(iter(self.train_iter[1]))
-    #             # logger.info('batch 1 {}'.format(batch1))
-    #             # logger.info('batch 2 {}'.format(batch2))
-    #             # break
-
-    #             batch = self.batch_class(batch, self.model.pad_index,
-    #                                     use_cuda=self.use_cuda)
-
-    #             #get batch loss
-    #             batch_loss += self._train_step(batch)
-
-    #             #update! if batch_multiplier==1, we always run this block 
-    #             if (batch_number_in_epoch + 1) % self.batch_multiplier == 0:
-    #                 # clip gradients (in-place)
-    #                 if self.clip_grad_fun is not None:
-    #                     if self.fp16:
-    #                         self.clip_grad_fun(
-    #                             params=amp.master_params(self.optimizer))
-    #                     else:
-    #                         self.clip_grad_fun(params=self.model.parameters())
-
-    #                 # make gradient step
-    #                 self.optimizer.step()
-
-    #                 # decay lr
-    #                 if self.scheduler is not None \
-    #                         and self.scheduler_step_at == "step":
-    #                     self.scheduler.step()
-
-    #                 # reset gradients
-    #                 self.model.zero_grad()             # create a Batch object from torchtext batch
-                    
-    #                 # increment step counter
-    #                 self.stats.steps += 1
-
-    #                 # log learning progress
-    #                 if self.stats.steps % self.logging_freq == 0:
-    #                     self.tb_writer.add_scalar("train/train_batch_loss",
-    #                                             batch_loss, self.stats.steps)
-    #                     elapsed = time.time() - start - total_valid_duration
-    #                     elapsed_tokens = self.stats.total_tokens - start_tokens
-    #                     logger.info(
-    #                         "Epoch %3d, Step: %8d, Batch Loss: %12.6f, "
-    #                         "Tokens per Sec: %8.0f, Lr: %.6f", epoch_no + 1,
-    #                         self.stats.steps, batch_loss,
-    #                         elapsed_tokens / elapsed,
-    #                         self.optimizer.param_groups[0]["lr"])
-    #                     start = time.time()
-    #                     total_valid_duration = 0
-    #                     start_tokens = self.stats.total_tokens
-
-    #                 #Only add complete loss of full mini-batch to epoch_loss
-    #                 #updates the epoch loss after each params update
-    #                 epoch_loss += batch_loss  # accumulate epoch_loss
-    #                 batch_loss = 0  # rest batch_loss
-               
-    #                 #validate on the entire dev set every validation_freq updates
-    #                 if self.stats.steps % self.validation_freq == 0:
-    #                     valid_duration = self._validate(valid_data, epoch_no)
-    #                     total_valid_duration += valid_duration
-
-
-
-
-    #             if self.stats.stop:
-    #                 logger.info('Training ended since minimum lr %f was reached.',
-    #                     self.learning_rate_min)
-    #                 break
-
-            
-    #         else:
-    #             logger.info('Training ended after %3d epochs.', epoch_no + 1)
-    #         logger.info('Best validation result (greedy) at step %8d: %6.2f %s.',
-    #                     self.stats.best_ckpt_iter, self.stats.best_ckpt_score,
-    #                     self.early_stopping_metric)
-
-    #         self.tb_writer.close()  # close Tensorboard writer
-                
-
-    #     else:    
-    #         for epoch_no in range(self.epochs):
-    #             logger.info("EPOCH %d", epoch_no + 1)
-
-    #             if self.scheduler is not None and self.scheduler_step_at == "epoch":
-    #                 self.scheduler.step(epoch=epoch_no)
-
-    #             self.model.train()
-
-    #             # Reset statistics for each epoch.
-    #             start = time.time()
-    #             total_valid_duration = 0
-    #             start_tokens = self.stats.total_tokens
-    #             self.model.zero_grad()
-    #             epoch_loss = 0
-    #             batch_loss = 0
-
-    #             for i, batch in enumerate(iter(self.train_iter)):
-    #                 # create a Batch object from torchtext batch
-    #                 batch = self.batch_class(batch, self.model.pad_index,
-    #                                         use_cuda=self.use_cuda)
-
-    #                 # get batch loss
-    #                 batch_loss += self._train_step(batch)
-
-    #                 # update!
-    #                 if (i + 1) % self.batch_multiplier == 0:
-    #                     # clip gradients (in-place)
-    #                     if self.clip_grad_fun is not None:
-    #                         if self.fp16:
-    #                             self.clip_grad_fun(
-    #                                 params=amp.master_params(self.optimizer))
-    #                         else:
-    #                             self.clip_grad_fun(params=self.model.parameters())
-
-    #                     # make gradient step
-    #                     self.optimizer.step()
-
-    #                     # decay lr
-    #                     if self.scheduler is not None \
-    #                             and self.scheduler_step_at == "step":
-    #                         self.scheduler.step()
-
-    #                     # reset gradients
-    #                     self.model.zero_grad()
-
-    #                     # increment step counter
-    #                     self.stats.steps += 1
-
-    #                     # log learning progress
-    #                     if self.stats.steps % self.logging_freq == 0:
-    #                         self.tb_writer.add_scalar("train/train_batch_loss",
-    #                                                 batch_loss, self.stats.steps)
-    #                         elapsed = time.time() - start - total_valid_duration
-    #                         elapsed_tokens = self.stats.total_tokens - start_tokens
-    #                         logger.info(
-    #                             "Epoch %3d, Step: %8d, Batch Loss: %12.6f, "
-    #                             "Tokens per Sec: %8.0f, Lr: %.6f", epoch_no + 1,
-    #                             self.stats.steps, batch_loss,
-    #                             elapsed_tokens / elapsed,
-    #                             self.optimizer.param_groups[0]["lr"])
-    #                         start = time.time()
-    #                         total_valid_duration = 0
-    #                         start_tokens = self.stats.total_tokens
-
-    #                     # Only add complete loss of full mini-batch to epoch_loss
-    #                     epoch_loss += batch_loss  # accumulate epoch_loss
-    #                     batch_loss = 0  # rest batch_loss
-
-    #                     # validate on the entire dev set
-    #                     if self.stats.steps % self.validation_freq == 0:
-    #                         valid_duration = self._validate(valid_data, epoch_no)
-    #                         total_valid_duration += valid_duration
-
-    #                 if self.stats.stop:
-    #                     break
-    #             if self.stats.stop:
-    #                 logger.info('Training ended since minimum lr %f was reached.',
-    #                             self.learning_rate_min)
-    #                 break
-
-    #             logger.info('Epoch %3d: total training loss %.2f', epoch_no + 1,
-    #                         epoch_loss)
-    #         else:
-    #             logger.info('Training ended after %3d epochs.', epoch_no + 1)
-    #         logger.info('Best validation result (greedy) at step %8d: %6.2f %s.',
-    #                     self.stats.best_ckpt_iter, self.stats.best_ckpt_score,
-    #                     self.early_stopping_metric)
-
-    #         self.tb_writer.close()  # close Tensorboard writer
