@@ -14,7 +14,7 @@ A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 | mixing with (1,0.5) mixing ratio [seed=42]     |     6 layers, 70 epochs. [notebook](https://bit.ly/3gLWsj3)      |     32.05 |   32.33 |
 
 
-You can find the notebook for finetuning tasks [here](4/1AX4XfWgPOUr0aO5srLilpLs3Iy7maHTSQZXffUTEt-sRsd2BJuo_cPAAnCY) 
+You can find the notebook for finetuning tasks [here](https://colab.research.google.com/drive/1C0xC56U1VmDhcE02rGbGb4b2SvypGZmS?usp=sharing) 
 
 
 
