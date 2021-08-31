@@ -13,7 +13,7 @@ A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 | [1]mixing with (1,0.8) mixing ratio (seed=42)   |     6 layers, 40 epochs / 10 epochs fintuning.           |     29.96/30.48       |   30.45/31.18    |
 | [2]mixing with (1,0.8) mixing ratio (seed=42)     |     6 layers, 40 epochs / 10 epochs fintuning.      |     30.02/30.84 |   30.53/31.32    |
 | [1]mixing with (1,1) mixing ratio (seed=42)   |     6 layers, 70 epochs / 10 epochs fintuning.           |    ?????      |   ???????    |
-| [2]mixing with (1,1) mixing ratio      |     6 layers, 40 epochs / 10 epochs fintuning.      |    31.87    |    32.08   |
+| [2]mixing with (1,1) mixing ratio      |     6 layers, 70 epochs / 10 epochs fintuning.      |    31.87/??    |    32.08/??   |
 
 You can find the notebook for finetuning tasks [here](https://colab.research.google.com/drive/1C0xC56U1VmDhcE02rGbGb4b2SvypGZmS?usp=sharing) 
 
