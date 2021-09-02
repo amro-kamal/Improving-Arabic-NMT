@@ -8,7 +8,7 @@ A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 | [3]stanrad translaton (seed=22)  |      6 layers, 70 epochs. [notebook](https://bit.ly/3mWOjwm)   |    30.42   |   31.02   |
 | [1]mixing with (1,0.3) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs fintuning. [notebook](https://bit.ly/3hzsUGh)  |  30.22/31.06 |  30.44/31.63  |  
 | [2]mixing with (1,0.3) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs fintuning. [notebook](https://bit.ly/3r44O9D)  |  30.22/31.19 |  30.52/31.49  |
-| [3]mixing with (1,0.3) mixing ratio (seed=42) |  6 layers, 70 epochs / 10 epochs fintuning. [notebook](https://bit.ly/3mW5KwH)  |  31.51/32.00 |  30.52/31.49  |
+| [3]mixing with (1,0.3) mixing ratio (seed=42) |  6 layers, 70 epochs / 10 epochs fintuning. [notebook](https://bit.ly/3mW5KwH)  |  31.51/32.00 |  32.43/32.76  |
 | [1]mixing with (1,0.5) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs fintuning.      |     30.20/30.80     |   30.7/31.70   |
 | [2]mixing with (1,0.5) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs fintuning.      |     30.34/31.03 |   30.85/31.55      |
 | [3]mixing with (1,0.5) mixing ratio [seed=42] |  6 layers, 70 epochs. [notebook](https://bit.ly/3gLWsj3)      |     32.05   |    32.33    |
