@@ -14,6 +14,7 @@ A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 
 
 |      Experiment          |           Discription           |   val     |    test     |
+|    -------------         |     -----------------------     |  ------------ | ------------    |
 | [1]stanrad translaton (seed=42)  |      6 layers, 50 epochs/70 epochs. [notebook](https://bit.ly/3wxSeRd)      |   30.18/30.32   |    30.56/30.71   |
 | [3]stanrad translaton (seed=22)  |      6 layers, 70 epochs. [notebook](https://bit.ly/3mWOjwm)   |    30.42   |   31.02   |
 | [3]mixing with (1,0.3) mixing ratio (seed=42) |  6 layers, 70 epochs / 10 epochs fintuning. [notebook](https://bit.ly/3mW5KwH)  |  31.51/32.00 |  32.43/32.76  |
