@@ -11,7 +11,7 @@ A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 | [1]mixing with (1,0.8) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs fintuning.      |     29.96/30.48       |   30.45/31.18  |
 | [2]mixing with (1,0.8) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs fintuning.      |     30.02/30.84 |   30.53/31.32    |
 
->The results after 70 epochs with the mixed data and 10 epochs with the original data
+The results after 70 epochs with the mixed data and 10 epochs with the original data
 
 |      Experiment          |           Discription           |   val     |    test     |
 |    -------------         |     -----------------------     |  ------------ | ------------    |
