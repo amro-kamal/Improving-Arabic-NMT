@@ -1,5 +1,5 @@
 # Arabic-MTL-NMT
-##A repo for the project "Arabic Multitask Learning Neural Machine Translation"
+## A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 The results after 70 epochs with the mixed data and 10 epochs with the original data
 
 |      Experiment          |           Discription           |   val     |    test     |
