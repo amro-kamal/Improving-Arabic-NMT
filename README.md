@@ -8,7 +8,7 @@ The results after 40 epochs with the mixed data and  of fine tuning on the origi
 | mixing with (1,0.3) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs finetuning. [notebook](https://bit.ly/3hzsUGh)  |  30.22/31.06 |  30.44/31.63  | 
 | mixing with (1,0.5) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs finetuning.      |     30.34/31.03 |   30.85/31.55      |
 | mixing with (1,0.8) mixing ratio (seed=42) |  6 layers, 40 epochs / 10 epochs finetuning.      |     30.02/30.84 |   30.53/31.32    |
-| mixing with (1,1) mixing ratio (seed=22)   |  6 layers, 40 epochs / 10 epochs finetuning.      |     30.11/30.74  |    31.35/31.44   |
+| mixing with (1,1) mixing ratio (seed=42)   |  6 layers, 40 epochs / 10 epochs finetuning.      |     30.11/30.74  |    31.35/31.44   |
 
 The results after 70 epochs with the mixed data and 10 epochs of fine tuning on the original data. We can see that the baseline model doesn't benifit from long training in contrast to training with mixed data. 
 
