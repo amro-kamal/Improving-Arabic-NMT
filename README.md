@@ -6,7 +6,7 @@ Here we are trying to utlize the Arabic text after removing the dots from it and
 
 We implemented this for EN-AR translation and achieved BLUE score improvement up to 1 point without any additional data nor model modification.
 
-All the results in the tables are for training a 6-en-layers/6-dec-layers Transformer. Our method doesn't depend on the model architecture and can be implemented for all the other architectures like RNNs. 
+All the results in the tables are for training a 6-en-layers/6-dec-layers Transformer. Our method doesn't depend on the model architecture and can be implemented for all the other architectures like RNNs. The code is built on joeynmt Machine Translation lib.
 
 The results after 40 epochs with the mixed data and  of fine tuning on the original data
 
