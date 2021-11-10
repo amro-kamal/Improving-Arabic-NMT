@@ -1,5 +1,13 @@
 # Arabic-MTL-NMT
 ### A repo for the project "Arabic Multitask Learning Neural Machine Translation"
+The idea of this work was inspired from the fact that the Arabic text still easy to read for the native speakers after we remove the dots form the text.
+
+Here we are trying to utlize the Arabic text after removing the dots from it and use this as a kind of data augmentation method to improve the translation performance form language x to Arabic.
+
+We implemented this for EN-AR translation and achieved BLUE score improvement up to 1 point without any additional data nor model modification.
+
+All the results in the tables are for training a 6-en-layers/6-dec-layers Transformer. Our method doesn't depend on the model architecture and can be implemented for all the other architectures like RNNs. 
+
 The results after 40 epochs with the mixed data and  of fine tuning on the original data
 
 |      Experiment          |           Discription           |   val     |    test     |
@@ -20,8 +28,8 @@ The results after 70 epochs with the mixed data and 10 epochs of fine tuning on 
 | [1]mixing with (1,0.5) mixing ratio [seed=42] |  6 layers, 70 epochs / 10 epochs finetuning. [notebook](https://bit.ly/3gLWsj3)  |     32.05/32.47  |    32.33/32.96    |
 | [2]mixing with (1,0.5) mixing ratio [seed=42] |  6 layers, 70 epochs / 10 epochs finetuning. [notebook](??)  |     31.27/31.55  |    31.62/32.25   |
 | mixing with (1,0.8) mixing ratio [seed=42] |  6 layers, 70 epochs / 10 epochs finetuning.      |     31.01/31.47     |    31.68/31.98     |
-| mixing with (1,1) mixing ratio (seed=42)   |  6 layers, 70 epochs / 10 epochs finetuning. [notebook](https://bit.ly/3zCUIQN)  |  31.87/32.00 | 32.08/**32.85**   |
-| mixing with (1,1.2) mixing ratio (seed=42)   |  6 layers, 70 epochs / 10 epochs finetuning. [notebook](https://bit.ly/3zJi8nA)|    31.68/32.00 | 32.18/32.69    |
+| mixing with (1,1) mixing ratio (seed=42)   |  6 layers, 70 epochs / 10 epochs finetuning. [notebook](https://bit.ly/3zCUIQN)  |  31.87/32.00 | 32.08/32.85   |
+| mixing with (1,1.2) mixing ratio (seed=42)   |  6 layers, 70 epochs / 10 epochs finetuning. [notebook](https://bit.ly/3zJi8nA)|    31.68/32.00 | 32.18/**32.69**    |
 
 
 You can find the notebook for finetuning tasks [here](https://colab.research.google.com/drive/1C0xC56U1VmDhcE02rGbGb4b2SvypGZmS?usp=sharing) 
