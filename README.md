@@ -1,4 +1,4 @@
-# Arabic-MTL-NMT
+# Improving Arabic Neural Machine Transation
 ### A repo for the project "Arabic Multitask Learning Neural Machine Translation"
 The idea of this work was inspired from the fact that the Arabic text still easy to read for the native speakers after we remove the dots form the text.
 
