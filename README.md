@@ -1,5 +1,5 @@
 # Improving Arabic Neural Machine Transation
-### A repo for the project "Arabic Multitask Learning Neural Machine Translation"
+### A repo for the project "Improving Arabic Neural Machine Transation"
 The idea of this work was inspired from the fact that the Arabic text still easy to read for the native speakers after we remove the dots form the text.
 
 Here we are trying to utlize the Arabic text after removing the dots from it and use this as a kind of data augmentation method to improve the translation performance form language x to Arabic.
